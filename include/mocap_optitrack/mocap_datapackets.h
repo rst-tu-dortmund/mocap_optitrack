@@ -45,7 +45,49 @@
 #include <string>
 #include <geometry_msgs/PoseStamped.h>
 
+#include <geometry_msgs/PointStamped.h>
+#include <vector>
+#include <algorithm>
+#include <geometry_msgs/PolygonStamped.h>
+#include <geometry_msgs/Point32.h>
+
 using namespace std;
+
+
+template <typename T, typename Total, int N>
+class Moving_Average
+{
+  public:
+    Moving_Average()
+      : num_samples_(0), total_(0)
+    { }
+
+    void operator()(T sample)
+    {
+        if (num_samples_ < N)
+        {
+            samples_[num_samples_++] = sample;
+            total_ += sample;
+        }
+        else
+        {
+            T& oldest = samples_[num_samples_++ % N];
+            total_ += sample - oldest;
+            oldest = sample;
+        }
+    }
+
+    operator double() const { return total_ / std::min(num_samples_, N); }
+    
+    double getEstimate() const { return total_ / std::min(num_samples_, N); }
+
+  private:
+    T samples_[N];
+    int num_samples_;
+    Total total_;
+};
+
+
 
 /// \brief Data object holding the position of a single mocap marker in 3d space
 class Marker
@@ -54,6 +96,11 @@ class Marker
     float positionX;
     float positionY;
     float positionZ;
+    
+    static float norm(const Marker& Vektor)
+    {
+      return std::sqrt(Vektor.positionX*Vektor.positionX + Vektor.positionY*Vektor.positionY + Vektor.positionZ*Vektor.positionZ);
+    }
 };
 
 class Pose
@@ -72,6 +119,17 @@ class Pose
     } orientation;
 };
 
+class Object
+{
+  public:
+    Object(const std::vector<int>& dists_mm, const std::string& str, const std::vector<geometry_msgs::Point32>& points);
+
+    std::vector<int> distances_mm;
+    std::string name;
+    std::vector<geometry_msgs::Point32> footprint;
+    
+};
+
 /// \brief Data object holding information about a single rigid body within a mocap skeleton
 class RigidBody
 {
@@ -88,6 +146,37 @@ class RigidBody
 
     const geometry_msgs::PoseStamped get_ros_pose();
     bool has_data();
+
+    const geometry_msgs::PointStamped get_ros_marker();
+    std::vector<Marker> distance_vectors;
+    void pushBackDistanceVector(int a, int b);
+    std::vector<float> distances;
+
+    std::string name = "unbekannt";
+    void setNameFromKnownObjects(const std::vector< Object >& known_objects);
+    const geometry_msgs::PolygonStamped get_ros_footprint();
+    vector<geometry_msgs::Point32> footprint;
+    
+
+};
+
+class RigidBodyOdomHelper
+{
+public:
+    
+    RigidBodyOdomHelper() : rigidbody_name(""), last_time(ros::Time(0)), last_x(0), last_y(0), last_theta(0), first_values(true) 
+    {}
+   
+  
+    std::string rigidbody_name;
+  
+    Moving_Average<double, double, 10> movav_vel;
+    Moving_Average<double, double, 10> movav_omega;
+    ros::Time last_time;
+    double last_x;
+    double last_y;
+    double last_theta;
+    bool first_values;
 };
 
 /// \brief Data object describing a single tracked model
@@ -128,6 +217,8 @@ class ModelFrame
     int numRigidBodies;
 
     float latency;
+
+    std::vector<Object> known_objects;
 };
 
 /// \brief Parser for a NatNet data frame packet
@@ -139,7 +230,6 @@ class MoCapDataFormat
 
     /// \brief Parses a NatNet data frame packet as it is streamed by the Arena software according to the descriptions in the NatNet SDK v1.4
     void parse ();
-
 
     const char *packet;
     unsigned short length;

@@ -1,10 +1,11 @@
 <launch> 
-  <node pkg="mocap_optitrack"
-    type="mocap_node"
-    name="mocap_node"
-    respawn="false"
-    launch-prefix=""
-    required="true">
+
+  <node pkg="mocap_optitrack" type="mocap_node" name="mocap_node" respawn="false" required="true" output="screen">
     <rosparam file="$(find mocap_optitrack)/config/mocap.yaml" command="load" />
   </node>
+
+
+  <!-- publish transformation between Brick4 "mocap_link" and "base_link" -->
+  <node pkg="tf" type="static_transform_publisher" name="brick4_mocap_base_link" args="-0.06 0.01 0 0 0 0 1 Brick4/mocap_link Brick4/base_link 50" />
+
 </launch>

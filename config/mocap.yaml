@@ -1,15 +1,62 @@
 # 
 # Definition of all trackable objects
 # Identifier corresponds to Trackable ID set in Tracking Tools
+#       radius: 0.0
 #
+# Abstände im Uhrzeigersinn  Anfang: Oben links
 rigid_bodies:
-    '1':
-        pose: Robot_1/pose
-        pose2d: Robot_1/ground_pose
-        child_frame_id: Robot_1/base_link
+    'Brick4':
+        abstand: '89, 98, 34'
+        odom: Brick4/odom
+        footprint: [ [-0.105,-0.10], [0.17,-0.10], [0.17,0.12], [-0.105,0.12] ] 
+        # from rear axis point of view (base_link): footprint: [ [-0.045,-0.11], [0.23,-0.11], [0.23,0.11], [-0.045,0.11] ]
+        pose: Brick4/pose
+        child_frame_id: Brick4/mocap_link
         parent_frame_id: world
-    '2':
-        pose: Robot_2/pose
-        pose2d: Robot_2/ground_pose
-        frame_id: Robot_2/base_link
+    'Core_Set1': #B7
+        abstand: '153, 265, 150, 265, 153, 151, 153, 154'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set1/base_link
         parent_frame_id: world
+    'Core_Set2': #B2
+        abstand: '265, 210, 268, 210, 340, 340'
+        footprint: [ [-0.09,-0.16], [0.09,-0.16], [0.09, 0.16], [-0.09,0.16] ]
+        child_frame_id: Core_Set2/base_link
+        parent_frame_id: world
+    'Core_Set3': #B1
+        abstand: '209, 170, 214, 173, 273, 272'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set3/base_link
+        parent_frame_id: world
+    'Core_Set4': #B3
+        abstand: '152, 80, 150, 86, 42, 44, 43, 37, 173, 153, 158, 149, 156, 172, 155'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set4/base_link
+        parent_frame_id: world
+    'Core_Set5': #B8
+        abstand: '140, 150, 150, 144, 140, 256'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set5/base_link
+        parent_frame_id: world
+    'Core_Set6': #E1
+        abstand: '304, 189, 306, 191, 359, 360'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set6/base_link
+        parent_frame_id: world
+    'Core_Set7': #B4
+        abstand: '89, 193, 94, 190, 212, 215'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set7/base_link
+        parent_frame_id: world
+    'Core_Set8': #B6
+        abstand: '157, 209, 152, 212, 260, 262'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set8/base_link
+        parent_frame_id: world
+    'Core_Set9': #E3
+        abstand: '330, 140, 331, 139, 358, 360, 188, 186, 171, 172'
+        footprint: [ [-0.07,-0.14], [0.07,-0.14], [0.07,0.14], [-0.07,0.14] ]
+        child_frame_id: Core_Set9/base_link
+        parent_frame_id: world
+
+

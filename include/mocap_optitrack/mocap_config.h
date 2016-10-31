@@ -51,6 +51,20 @@
 #include <tf/transform_broadcaster.h>
 #include "mocap_datapackets.h"
 
+#include <geometry_msgs/PolygonStamped.h>
+#include <tf/transform_listener.h>
+
+class footprint
+{
+  public:
+    footprint(tf::Transform tf);
+    
+    tf::Transform transform;
+    geometry_msgs::PolygonStamped footprint_base_link;
+    geometry_msgs::PolygonStamped footprint_world;
+    geometry_msgs::PolygonStamped transform_footprint(geometry_msgs::PolygonStamped polygon);
+};
+
 class PublishedRigidBody
 {
   private:
@@ -61,23 +75,34 @@ class PublishedRigidBody
   std::string parent_frame_id;
   std::string child_frame_id;
 
-
+  std::string marker_topic;
+  std::string odom_topic;
+  std::string footprint_topic;
+ 
   bool publish_pose;
   bool publish_tf;
   bool publish_pose2d;
+
+  bool publish_marker;
+  bool publish_odom;
+  bool publish_footprint;
 
   tf::TransformBroadcaster tf_pub;
   ros::Publisher pose_pub;
   ros::Publisher pose2d_pub;
 
+  ros::Publisher marker_pub;
+  ros::Publisher odom_pub;
+  ros::Publisher footprint_pub;
+
   bool validateParam(XmlRpc::XmlRpcValue &, const std::string &);
 
   public:
   PublishedRigidBody(XmlRpc::XmlRpcValue &);
-  void publish(RigidBody &);
+  void publish(RigidBody &, RigidBodyOdomHelper& odom_helper);
 };
 
-typedef std::map<int, PublishedRigidBody> RigidBodyMap;
-typedef std::pair<int, PublishedRigidBody> RigidBodyItem;
+typedef std::map<string, PublishedRigidBody> RigidBodyMap;
+typedef std::pair<string, PublishedRigidBody> RigidBodyItem;
 
 #endif  // __MOCAP_CONFIG_H__

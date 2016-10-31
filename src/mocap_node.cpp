@@ -17,6 +17,7 @@
 #include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/Pose2D.h>
+#include <unordered_map>
 
 // System includes
 #include <string>
@@ -36,10 +37,12 @@ const int LOCAL_PORT = 1511;
 
 ////////////////////////////////////////////////////////////////////////
 
-void processMocapData( const char** mocap_model, RigidBodyMap& published_rigid_bodies)
+void processMocapData( const char** mocap_model, RigidBodyMap& published_rigid_bodies, vector<Object> Liste)
 {
   UdpMulticastSocket multicast_client_socket( LOCAL_PORT, MULTICAST_IP );
 
+   std::unordered_map<std::string,RigidBodyOdomHelper> odom_helpers;
+  
   ushort payload;
   int numberOfPackets = 0;
   while(ros::ok())
@@ -63,7 +66,9 @@ void processMocapData( const char** mocap_model, RigidBodyMap& published_rigid_b
         {
           payload = *((ushort*) &buffer[2]);
           MoCapDataFormat format(buffer, payload);
+          format.model.known_objects = Liste;
           format.parse();
+
           packetread = true;
           numberOfPackets++;
 
@@ -71,12 +76,21 @@ void processMocapData( const char** mocap_model, RigidBodyMap& published_rigid_b
           {
             for( int i = 0; i < format.model.numRigidBodies; i++ )
             {
-              int ID = format.model.rigidBodies[i].ID;
-              RigidBodyMap::iterator item = published_rigid_bodies.find(ID);
+
+// Ausgabe Test
+/*std::cout << "Start " << i << std::endl;
+std::cout << format.model.Liste[1][0] << std::endl;
+std::cout << format.model.Liste[1][1] << std::endl;
+std::cout << format.model.Liste[1][2] << std::endl;*/
+                
+              string name = format.model.rigidBodies[i].name;
+              RigidBodyMap::iterator item = published_rigid_bodies.find(name);
 
               if (item != published_rigid_bodies.end())
               {
-                  item->second.publish(format.model.rigidBodies[i]);
+		  RigidBodyOdomHelper& current_odom_helper = odom_helpers[name];
+		  
+                  item->second.publish(format.model.rigidBodies[i], current_odom_helper);
               }
             }
           }
@@ -91,6 +105,11 @@ void processMocapData( const char** mocap_model, RigidBodyMap& published_rigid_b
       usleep( 10 );
     }
   }
+}
+
+double getNumberFromXMLRPC(XmlRpc::XmlRpcValue& value, const std::string& full_param_name)
+{
+  return value.getType() == XmlRpc::XmlRpcValue::TypeInt ? (int)(value) : (double)(value);
 }
 
 
@@ -120,6 +139,8 @@ int main( int argc, char* argv[] )
   }
 
   RigidBodyMap published_rigid_bodies;
+  
+  vector<Object> Liste;
 
   if (n.hasParam(RIGID_BODIES_KEY))
   {
@@ -131,13 +152,60 @@ int main( int argc, char* argv[] )
           for (i = body_list.begin(); i != body_list.end(); ++i) {
               if (i->second.getType() == XmlRpc::XmlRpcValue::TypeStruct) {
                   PublishedRigidBody body(i->second);
-                  string id = (string&) (i->first);
-                  RigidBodyItem item(atoi(id.c_str()), body);
+                  string abstand = (string&) (i->second["abstand"]);
+                  string name = (string&) (i->first);
+                  
+                  // string to char*
+                  char *cstr = new char[abstand.length() + 1];
+                  strcpy(cstr, abstand.c_str());
+
+                  // Zahlen trennen und als int abspeichern
+                  char *pch = strtok(cstr, ",");
+                  vector<int> Abstand;
+                  while (pch != NULL)
+                  {
+                    Abstand.push_back(atoi(pch));
+                    pch = strtok (NULL, ",");
+                  }
+                  delete [] cstr;
+                  sort (Abstand.begin(), Abstand.end());
+  
+                  std::string full_param_name;
+                  vector<geometry_msgs::Point32> footprint;
+  
+                  std::string footprint_param = "/mocap_node/rigid_bodies/";
+		  footprint_param += name;
+                  footprint_param += "/footprint";
+		  
+                  if (n.searchParam(footprint_param, full_param_name))  
+                  {
+		    XmlRpc::XmlRpcValue footprint_xmlrpc;
+		    n.getParam(full_param_name, footprint_xmlrpc);
+		    if (footprint_xmlrpc.getType() == XmlRpc::XmlRpcValue::TypeArray)
+		    {
+		      geometry_msgs::Point32 pt;
+
+		      for (int i = 0; i < footprint_xmlrpc.size(); ++i)
+		      {
+			XmlRpc::XmlRpcValue point = footprint_xmlrpc[ i ];
+
+			pt.x = getNumberFromXMLRPC(point[ 0 ], full_param_name);
+			pt.y = getNumberFromXMLRPC(point[ 1 ], full_param_name);
+			
+			footprint.push_back(pt);
+		      }
+		    }
+                  }
+
+                  // Liste ausfüllen
+                  Liste.push_back({Abstand, name, footprint});
+
+                  RigidBodyItem item(name, body);
 
                   std::pair<RigidBodyMap::iterator, bool> result = published_rigid_bodies.insert(item);
                   if (!result.second)
                   {
-                      ROS_ERROR("Could not insert configuration for rigid body ID %s", id.c_str());
+                      ROS_ERROR("Could not insert configuration for rigid body ID %s", name.c_str());
                   }
               }
           }
@@ -145,7 +213,7 @@ int main( int argc, char* argv[] )
   }
 
   // Process mocap data until SIGINT
-  processMocapData(mocap_model, published_rigid_bodies);
+  processMocapData(mocap_model, published_rigid_bodies, Liste);
 
   return 0;
 }
