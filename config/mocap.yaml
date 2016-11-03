@@ -3,7 +3,6 @@
 # Identifier corresponds to Trackable ID set in Tracking Tools
 #       radius: 0.0
 #
-# Abstände im Uhrzeigersinn  Anfang: Oben links
 rigid_bodies:
     'Brick4':
         abstand: '89, 98, 34'
